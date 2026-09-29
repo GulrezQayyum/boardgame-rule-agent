@@ -1,5 +1,5 @@
-import { type SchemaTypeDefinition } from 'sanity'
+import { gameCard } from './gameCard';
+import { gameRule } from './gameRule';
+import { interactionConflict } from './interactionConflict';
 
-export const schema: { types: SchemaTypeDefinition[] } = {
-  types: [],
-}
+export const schemaTypes = [gameCard, gameRule, interactionConflict];

@@ -1,36 +1,52 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Board Game Rule Conflict Resolver AI Agent
 
-## Getting Started
+An AI agent designed to resolve complex board game card interactions and rule paradoxes using structured context in Sanity Studio, GROQ queries, and LLM reasoning.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Step 1: Sanity Schema Setup
+
+To support deterministic conflict resolution, the database requires structured relationships between cards, rules, and edge-case interactions rather than unstructured raw text chunks.
+
+### Core Schema Models (`sanity/schemaTypes/`)
+
+1. **`gameCard.ts`**: Models game cards, abilities, trigger conditions, and keywords.
+2. **`gameRule.ts`**: Models general rulebook sections, turn phases, and default priority hierarchies.
+3. **`interactionConflict.ts`**: Connects conflicting cards/rules with official designer rulings, errata overrides, and resolution priorities.
+
+---
+
+## Step 2: Content Seeding & Studio Configuration
+
+### Environment Setup
+Configured `.env.local` in the project root:
+
+```env
+NEXT_PUBLIC_SANITY_PROJECT_ID="your_project_id_here"
+NEXT_PUBLIC_SANITY_DATASET="production"
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Local Sanity Studio Access
+Embedded studio runs locally at:  http://localhost:3000/studio
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Published Seed Data
 
-## Learn More
+**Game Card 1:**
+- **Name:** Mirror Shield
+- **Card ID:** mirror-shield
+- **Effect Text:** Reflects any incoming spell back at the caster.
 
-To learn more about Next.js, take a look at the following resources:
+**Game Card 2:**
+- **Name:** Piercing Bolt
+- **Card ID:** piercing-bolt
+- **Effect Text:** Deals 5 damage. Unblockable by shields.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+**Interaction Conflict:**
+- **Title:** Mirror Shield vs. Piercing Bolt
+- **Involved Cards:** Mirror Shield, Piercing Bolt
+- **Official Ruling:** Piercing Bolt bypasses Mirror Shield completely because unblockable effects take priority over passive reflection.
+- **Resolution Priority:** Negation / "Cannot" Takes Precedence
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+   
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

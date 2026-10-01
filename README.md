@@ -65,11 +65,3 @@ Created a deterministic GROQ fetcher and Next.js API endpoint to query card mech
 
 ---
 
-## Step 4: LLM Judge Agent via Groq Cloud
-
-Integrated Groq Cloud API (`llama-3.3-70b-versatile`) to act as an automated Tournament Head Judge.
-
-### Architecture
-1. **Context Fetching:** Next.js backend fetches structured card data and official errata from Sanity using Sanity GROQ.
-2. **Grounded Prompting:** Injects JSON context into the Groq Llama 3.3 system prompt to eliminate hallucinations.
-3. **High-Speed Inference:** Groq LPU executes token generation near-instantaneously to give live rulings during gameplay.

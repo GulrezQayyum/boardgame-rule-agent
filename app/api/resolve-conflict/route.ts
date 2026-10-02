@@ -3,6 +3,7 @@ import Groq from 'groq-sdk';
 import { agentToolDeclarations, executeAgentTool } from '@/sanity/lib/agentTools';
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || '' });
+const groqModel = process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
 
 export async function POST(request: Request) {
   try {
@@ -19,12 +20,13 @@ export async function POST(request: Request) {
       {
         role: 'system',
         content: `You are an expert, impartial Board Game Tournament Head Judge.
-Your job is to resolve rule conflicts using tools to query official cards, errata conflicts, and core rule priorities from Sanity.
+      Resolve rule conflicts using tools to query official cards, errata conflicts, and core rule priorities from Sanity.
 
 STRICT RULING RULES:
 1. ONLY rely on retrieved Sanity context. Do NOT invent game rules.
-2. If context does NOT contain a definitive answer or rule, set confidence to "low" and state: "Insufficient official data in Sanity Content Lake to render an absolute judgment."
-3. Format output strictly as JSON with this schema:
+      2. If context contains an explicit official ruling or matching card text, set confidence to "high".
+      3. If context does NOT contain a definitive answer or rule, set confidence to "low" and state: "Insufficient official data in Sanity Content Lake to render an absolute judgment."
+      4. Format output strictly as JSON:
 {
   "verdict": "Clear 1-sentence ruling.",
   "reasoning": "Step-by-step breakdown referencing card text or rules.",
@@ -42,10 +44,10 @@ Question/Dispute: "${question || 'What is the interaction order and outcome?'}"`
 
     // First agent call to let Llama 3.3 decide tool usage
     let response = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
+      model: groqModel,
       messages,
       tools: agentToolDeclarations as any,
-      tool_choice: 'auto',
+      tool_choice: 'required',
     });
 
     let responseMessage = response.choices[0].message;
@@ -69,8 +71,18 @@ Question/Dispute: "${question || 'What is the interaction order and outcome?'}"`
 
       // Final judgment generation after tool execution
       response = await groq.chat.completions.create({
-        model: 'llama-3.3-70b-versatile',
-        messages,
+        model: groqModel,
+        messages: [
+          messages[0],
+          messages[1],
+          {
+            role: 'user',
+            content: `Official Sanity retrieval results:\n${messages
+              .filter((message) => message.role === 'tool')
+              .map((message) => message.content)
+              .join('\n')}\n\nReturn the final ruling as JSON. Do not call tools.`,
+          },
+        ],
         response_format: { type: 'json_object' },
       });
     }

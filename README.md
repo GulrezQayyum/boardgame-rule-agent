@@ -1,75 +1,177 @@
-# Board Game Rule Conflict Resolver AI Agent
+# Board Game Rule Conflict Resolver
 
-An AI agent designed to resolve complex board game card interactions and rule paradoxes using structured context in Sanity Studio, GROQ queries, and LLM reasoning.
+A source-grounded board game tournament judge. The app uses Sanity as its structured source of truth for card text, errata, and rule priorities, then uses a Groq-compatible language model to decide which sources to query and produce a JSON ruling.
 
----
+## What It Does
 
-## Step 1: Sanity Schema Setup
+- Looks up official card mechanics with the `lookupCards` tool.
+- Searches linked interaction conflicts and errata with `lookupConflicts`.
+- Retrieves ordered core rules with `getRulePriority`.
+- Accepts multiple cards, the current game phase, and a player question.
+- Requires the model to rely only on retrieved Sanity context.
+- Returns low confidence with an explicit insufficient-data message when Sanity has no definitive answer.
 
-To support deterministic conflict resolution, the database requires structured relationships between cards, rules, and edge-case interactions rather than unstructured raw text chunks.
+## Architecture
 
-### Core Schema Models (`sanity/schemaTypes/`)
-
-1. **`gameCard.ts`**: Models game cards, abilities, trigger conditions, and keywords.
-2. **`gameRule.ts`**: Models general rulebook sections, turn phases, and default priority hierarchies.
-3. **`interactionConflict.ts`**: Connects conflicting cards/rules with official designer rulings, errata overrides, and resolution priorities.
-
----
-
-## Step 2: Content Seeding & Studio Configuration
-
-### Environment Setup
-Configured `.env.local` in the project root:
-
-```env
-NEXT_PUBLIC_SANITY_PROJECT_ID="your_project_id_here"
-NEXT_PUBLIC_SANITY_DATASET="production"
+```mermaid
+flowchart TD
+		UI[Next.js resolver UI] --> API[POST /api/resolve-conflict]
+		API --> Agent[Groq-compatible model]
+		Agent --> Tools[Tool calls]
+		Tools --> Cards[lookupCards]
+		Tools --> Conflicts[lookupConflicts]
+		Tools --> Rules[getRulePriority]
+		Cards --> Sanity[Sanity Content Lake]
+		Conflicts --> Sanity
+		Rules --> Sanity
+		Sanity --> Agent
+		Agent --> API
+		API --> UI
 ```
 
-### Local Sanity Studio Access
-Embedded studio runs locally at:  http://localhost:3000/studio
+## Tech Stack
 
+- Next.js 16 App Router and React 19
+- TypeScript
+- Tailwind CSS
+- Sanity Studio and GROQ
+- Groq SDK for model requests and tool calling
 
-### Published Seed Data
+## Project Layout
 
-**Game Card 1:**
-- **Name:** Mirror Shield
-- **Card ID:** mirror-shield
-- **Effect Text:** Reflects any incoming spell back at the caster.
+```text
+app/
+	api/resolve-conflict/route.ts   Agent endpoint
+	page.tsx                         Resolver UI
+	studio/[[...tool]]/page.tsx      Embedded Sanity Studio
+sanity/
+	schemaTypes/                     Card, rule, and conflict schemas
+	lib/agentTools.ts                GROQ-backed agent tools
+	seed.json                        Example dataset
+scripts/test-agent.ts              End-to-end test runner
+```
 
-**Game Card 2:**
-- **Name:** Piercing Bolt
-- **Card ID:** piercing-bolt
-- **Effect Text:** Deals 5 damage. Unblockable by shields.
+## Prerequisites
 
-**Interaction Conflict:**
-- **Title:** Mirror Shield vs. Piercing Bolt
-- **Involved Cards:** Mirror Shield, Piercing Bolt
-- **Official Ruling:** Piercing Bolt bypasses Mirror Shield completely because unblockable effects take priority over passive reflection.
-- **Resolution Priority:** Negation / "Cannot" Takes Precedence
+- Node.js 20 or newer
+- An accessible Sanity project and dataset
+- A Groq API key
 
----
+## Setup
 
-## Step 3: GROQ Conflict Resolver API
+Run these commands from the app directory:
 
-Created a deterministic GROQ fetcher and Next.js API endpoint to query card mechanics and linked interaction conflicts in real-time.
+```bash
+cd /home/gulrez/boardgame-rule-agent/boardgame-rule-agent
+npm install
+```
 
-### GROQ Query Architecture (`sanity/lib/getConflicts.ts`)
-* Filters target cards by slug or name matching.
-* Dereferences linked `interactionConflict` documents where the cards are referenced.
-* Expands related cards and core rules dynamically.
+Create `.env.local` in the app directory:
 
-### API Endpoint (`app/api/resolve-conflict/route.ts`)
-* **Endpoint:** `GET /api/resolve-conflict?card1={card1}&card2={card2}`
-* **Response:** Returns structured JSON containing card text, official rulings, and priority hierarchy.
+```env
+NEXT_PUBLIC_SANITY_PROJECT_ID="your_sanity_project_id"
+NEXT_PUBLIC_SANITY_DATASET="production"
+GROQ_API_KEY="gsk_your_groq_api_key"
+```
 
----
+Optional settings:
 
-## Step 4: LLM Judge Agent via Groq Cloud
+```env
+NEXT_PUBLIC_SANITY_API_VERSION="2026-09-28"
+GROQ_MODEL="openai/gpt-oss-120b"
+```
 
-Integrated Groq Cloud API (`llama-3.3-70b-versatile`) to act as an automated Tournament Head Judge.
+`GROQ_API_KEY` is used only by the server route. Do not expose it in client-side code or commit `.env.local`.
 
-### Architecture
-1. **Context Fetching:** Next.js backend fetches structured card data and official errata from Sanity using Sanity GROQ.
-2. **Grounded Prompting:** Injects JSON context into the Groq Llama 3.3 system prompt to eliminate hallucinations.
-3. **High-Speed Inference:** Groq LPU executes token generation near-instantaneously to give live rulings during gameplay.
+## Seed Sanity
+
+Make sure the project ID and dataset in `.env.local` match the target Sanity project, then import the sample content:
+
+```bash
+npx sanity dataset import sanity/seed.json production --replace
+```
+
+The seed data contains example cards, core rules, and interaction conflicts used by the end-to-end tests. The `--replace` flag replaces the target dataset, so do not use it against a dataset containing content you need to keep.
+
+## Run Locally
+
+Start the development server:
+
+```bash
+npm run dev
+```
+
+Open:
+
+- Resolver: <http://localhost:3000>
+- Sanity Studio: <http://localhost:3000/studio>
+
+## Test the Agent
+
+The test runner sends requests to `http://localhost:3000/api/resolve-conflict`, so keep `npm run dev` running in a separate terminal. From the app directory, run:
+
+```bash
+npx tsx ../scripts/test-agent.ts
+```
+
+The suite covers explicit errata, rule-priority fallback, a three-card interaction, and an unknown-card low-confidence fallback. A `FETCH FAILED` result usually means the development server is not running or is not listening on port 3000.
+
+## Validation
+
+Run the project TypeScript check:
+
+```bash
+npx tsc --noEmit
+```
+
+Run the production build:
+
+```bash
+npm run build
+```
+
+Run ESLint:
+
+```bash
+npm run lint
+```
+
+## API Contract
+
+`POST /api/resolve-conflict` accepts:
+
+```json
+{
+	"cards": ["Mirror Shield", "Piercing Bolt"],
+	"currentPhase": "Action Phase",
+	"question": "Can Mirror Shield reflect Piercing Bolt?"
+}
+```
+
+Successful responses have this shape:
+
+```json
+{
+	"success": true,
+	"agentRuling": {
+		"verdict": "Clear 1-sentence ruling.",
+		"reasoning": "Step-by-step breakdown referencing retrieved card text or rules.",
+		"citedDocuments": ["document-id-or-title"],
+		"confidence": "high"
+	}
+}
+```
+
+The `confidence` value is `high`, `medium`, or `low`. The route returns HTTP 400 when `cards` is missing or empty, and HTTP 500 when the agent or Sanity request fails.
+
+## Content Model
+
+- `gameCard`: official card identity, effect text, keywords, and trigger phase.
+- `gameRule`: ordered core rule priorities and rule text.
+- `interactionConflict`: linked cards, conflict description, official ruling, and resolution priority.
+
+The agent tools query these document types directly from Sanity. Add or revise official content in Sanity Studio rather than hard-coding rulings in the route.
+
+## Important Limitation
+
+This project is only as authoritative as the content in its Sanity dataset. When the Content Lake does not contain a definitive matching card, conflict, or rule, the agent must report insufficient official data instead of inventing a ruling.

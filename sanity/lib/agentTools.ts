@@ -64,11 +64,10 @@ export const agentToolDeclarations = [
 
 export async function executeAgentTool(name: string, args: any) {
   if (name === 'lookupCards') {
-    const query = `*[_type == "gameCard" && (name match $names || cardId.current in $cardNames)]{
+    const query = `*[_type == "gameCard" && (name in $cardNames || cardId.current in $cardNames)]{
       _id, name, "cardId": cardId.current, cardType, triggerPhase, keywords, effectText
     }`;
-    const namesPattern = args.cardNames.map((n: string) => `${n}*`).join(' ');
-    return await sanityClient.fetch(query, { names: namesPattern, cardNames: args.cardNames });
+    return await sanityClient.fetch(query, { cardNames: args.cardNames });
   }
 
   if (name === 'lookupConflicts') {

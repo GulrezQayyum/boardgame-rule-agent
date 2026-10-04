@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">Sanity to resolver content workflow</title>
+  <desc id="desc">A three-step workflow showing editors updating Sanity, GROQ retrieving content, and the resolver citing it.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#070914"/><stop offset="1" stop-color="#111827"/></linearGradient>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto"><path d="M0 0L12 6L0 12z" fill="#fbbf24"/></marker>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <text x="100" y="105" fill="#f8fafc" font-family="Arial, Helvetica, sans-serif" font-size="42" font-weight="700">One content update, one trusted answer</text>
+  <text x="100" y="150" fill="#94a3b8" font-family="Arial, Helvetica, sans-serif" font-size="22">Sanity gives tournament content editors a direct path from correction to user-facing ruling.</text>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <rect x="100" y="260" width="390" height="390" rx="20" fill="#0f172a" stroke="#f59e0b" stroke-width="3"/>
+    <text x="145" y="320" fill="#fbbf24" font-family="monospace" font-size="18">01 / EDIT</text>
+    <text x="145" y="370" fill="#f8fafc" font-size="29" font-weight="700">Sanity Studio</text>
+    <rect x="145" y="410" width="300" height="54" rx="9" fill="#020617" stroke="#334155"/>
+    <text x="170" y="444" fill="#cbd5e1" font-size="18">Interaction Conflict</text>
+    <rect x="145" y="480" width="300" height="105" rx="9" fill="#020617" stroke="#334155"/>
+    <text x="170" y="515" fill="#64748b" font-size="15" font-family="monospace">OFFICIAL RULING</text>
+    <text x="170" y="549" fill="#f8fafc" font-size="17">Update errata or rule text</text>
+    <circle cx="445" cy="290" r="13" fill="#34d399"/>
+    <text x="440" y="297" text-anchor="middle" fill="#022c22" font-size="16" font-weight="700">✓</text>
+    <rect x="605" y="260" width="390" height="390" rx="20" fill="#0f172a" stroke="#fbbf24" stroke-width="3"/>
+    <text x="650" y="320" fill="#fbbf24" font-family="monospace" font-size="18">02 / RETRIEVE</text>
+    <text x="650" y="370" fill="#f8fafc" font-size="29" font-weight="700">GROQ + GROQ</text>
+    <rect x="650" y="410" width="300" height="54" rx="9" fill="#020617" stroke="#334155"/>
+    <text x="675" y="444" fill="#34d399" font-size="18" font-family="monospace">lookupConflicts()</text>
+    <rect x="650" y="480" width="300" height="105" rx="9" fill="#020617" stroke="#334155"/>
+    <text x="675" y="515" fill="#64748b" font-size="15" font-family="monospace">SANITY CONTENT</text>
+    <text x="675" y="549" fill="#f8fafc" font-size="17">Retrieve linked evidence</text>
+    <path d="M490 455H590" fill="none" stroke="#fbbf24" stroke-width="4" marker-end="url(#arrow)"/>
+    <path d="M995 455H1095" fill="none" stroke="#fbbf24" stroke-width="4" marker-end="url(#arrow)"/>
+    <rect x="1110" y="260" width="390" height="390" rx="20" fill="#0f172a" stroke="#34d399" stroke-width="3"/>
+    <text x="1155" y="320" fill="#34d399" font-family="monospace" font-size="18">03 / EXPLAIN</text>
+    <text x="1155" y="370" fill="#f8fafc" font-size="29" font-weight="700">Resolver UI</text>
+    <rect x="1155" y="410" width="300" height="54" rx="9" fill="#10b981" fill-opacity=".12" stroke="#10b981" stroke-opacity=".4"/>
+    <text x="1180" y="444" fill="#34d399" font-size="18" font-family="monospace">HIGH CONFIDENCE</text>
+    <rect x="1155" y="480" width="300" height="105" rx="9" fill="#020617" stroke="#334155"/>
+    <text x="1180" y="515" fill="#64748b" font-size="15" font-family="monospace">CITED RULING</text>
+    <text x="1180" y="549" fill="#f8fafc" font-size="17">Answer grounded in sources</text>
+  </g>
+  <text x="800" y="760" text-anchor="middle" fill="#fbbf24" font-family="monospace" font-size="19">SANITY IS THE EDITABLE SOURCE OF TRUTH — NOT A STATIC SEED FILE</text>
+</svg>

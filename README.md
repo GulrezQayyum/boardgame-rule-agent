@@ -2,6 +2,18 @@
 
 A source-grounded board game tournament judge. The app uses Sanity as its structured source of truth for card text, errata, and rule priorities, then uses a Groq-compatible language model to decide which sources to query and produce a JSON ruling.
 
+## Submission Graphics
+
+These original graphics summarize the product and its Sanity integration:
+
+![Board Game Rule Conflict Resolver cover](./public/submission/cover.svg)
+
+![Resolver architecture](./public/submission/architecture.svg)
+
+![Sanity-to-resolver content workflow](./public/submission/workflow.svg)
+
+For a challenge submission, pair these graphics with screenshots of the resolver showing a completed ruling and Sanity Studio showing the linked `interactionConflict` document. The seeded cards and rulings are fictional demo content; replace them with licensed or officially maintained game data for production use.
+
 ## What It Does
 
 - Looks up official card mechanics with the `lookupCards` tool.

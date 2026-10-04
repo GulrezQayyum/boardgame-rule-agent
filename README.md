@@ -21,7 +21,7 @@ For a challenge submission, pair these graphics with screenshots of the resolver
 3. Return to the resolver, submit the same card interaction, and show the answer grounded in the updated Sanity content.
 4. Submit an unknown card such as `Mystic Dragon` to demonstrate the low-confidence, insufficient-data safeguard.
 
-This flow demonstrates the key Sanity contribution: content editors can maintain structured rulings without changing application code, while the resolver retrieves that content through GROQ-backed tools.
+This flow demonstrates the key Sanity contribution: content editors can maintain structured rulings without changing application code, while the resolver retrieves that content through Sanity Context MCP tools and GROQ-backed tools.
 
 ## What It Does
 
@@ -56,6 +56,7 @@ flowchart TD
 - TypeScript
 - Tailwind CSS
 - Sanity Studio and GROQ
+- Sanity Context MCP (server-side agent connection)
 - Groq SDK for model requests and tool calling
 
 ## Project Layout
@@ -103,6 +104,23 @@ GROQ_MODEL="openai/gpt-oss-120b"
 ```
 
 `GROQ_API_KEY` is used only by the server route. Do not expose it in client-side code or commit `.env.local`. If a key has ever been exposed, revoke it in the provider dashboard and create a replacement before running the app.
+
+### Enable Sanity Context MCP
+
+Path One expects the agent to query real Sanity content through Sanity Context. Create a GROQ-mode MCP endpoint in [Sanity Context](https://www.sanity.io/docs/ai/sanity-context-mcp) with the dataset source `kjwkn2a2.production` (or your own project and dataset). Then deploy the Studio schema:
+
+```bash
+npx sanity schema deploy
+```
+
+Create an organization-level Sanity API token with **Context Viewer** permission. Add the endpoint URL and token to `.env.local`:
+
+```env
+SANITY_MCP_ENDPOINT_URL="https://api.sanity.io/v1/context/organizations/your-organization-id/mcp/your-endpoint-name"
+SANITY_MCP_TOKEN="your-organization-context-viewer-token"
+```
+
+The server-side agent connects to the endpoint, discovers its available tools, exposes those tools to the model, and executes the selected Sanity Context tool calls. The token is never sent to the browser. If `SANITY_MCP_ENDPOINT_URL` is empty, the app uses its local GROQ-backed tools instead; set both MCP variables for the challenge demo.
 
 ## Seed Sanity
 

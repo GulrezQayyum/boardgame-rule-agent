@@ -2,6 +2,11 @@ import { NextResponse } from 'next/server';
 import Groq from 'groq-sdk';
 import type { ChatCompletionMessageParam } from 'groq-sdk/resources/chat/completions';
 import { agentToolDeclarations, executeAgentTool } from '@/sanity/lib/agentTools';
+import {
+  callSanityContextTool,
+  connectSanityContext,
+  isSanityContextConfigured,
+} from '@/sanity/lib/contextMcp';
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || '' });
 const groqModel = process.env.GROQ_MODEL || 'openai/gpt-oss-120b';
@@ -44,14 +49,18 @@ function parseToolArguments(argumentsJson: string): Record<string, unknown> {
 }
 
 export async function POST(request: Request) {
+  let mcpConnection: Awaited<ReturnType<typeof connectSanityContext>> | undefined;
   try {
     const { cards, currentPhase, question } = parseRequestBody(await request.json());
+    if (isSanityContextConfigured()) {
+      mcpConnection = await connectSanityContext();
+    }
 
     const messages: ChatCompletionMessageParam[] = [
       {
         role: 'system',
         content: `You are an expert, impartial Board Game Tournament Head Judge.
-      Resolve rule conflicts using tools to query official cards, errata conflicts, and core rule priorities from Sanity.
+      Resolve rule conflicts using Sanity Context MCP tools when available, or the local GROQ-backed tools otherwise. Query cards, errata conflicts, and core rule priorities from Sanity.
 
 STRICT RULING RULES:
 1. ONLY rely on retrieved Sanity context. Do NOT invent game rules.
@@ -77,7 +86,10 @@ Question/Dispute: "${question || 'What is the interaction order and outcome?'}"`
     let response = await groq.chat.completions.create({
       model: groqModel,
       messages,
-      tools: agentToolDeclarations,
+      tools: [
+        ...agentToolDeclarations,
+        ...(mcpConnection?.tools || []),
+      ],
       tool_choice: 'required',
     });
 
@@ -93,7 +105,15 @@ Question/Dispute: "${question || 'What is the interaction order and outcome?'}"`
       for (const toolCall of responseMessage.tool_calls) {
         const toolName = toolCall.function.name;
         const toolArgs = parseToolArguments(toolCall.function.arguments);
-        const toolResult = await executeAgentTool(toolName, toolArgs);
+        let toolResult: unknown;
+        if (toolName.startsWith('sanityContext_')) {
+          if (!mcpConnection) {
+            throw new Error('Sanity Context tools were requested but MCP is not connected.');
+          }
+          toolResult = await callSanityContextTool(mcpConnection.client, toolName, toolArgs);
+        } else {
+          toolResult = await executeAgentTool(toolName, toolArgs);
+        }
 
         messages.push({
           tool_call_id: toolCall.id,
@@ -134,5 +154,7 @@ Question/Dispute: "${question || 'What is the interaction order and outcome?'}"`
     const message = error instanceof Error ? error.message : 'Unexpected server error.';
     const status = message.includes('cards') || message.includes('Request body') ? 400 : 500;
     return NextResponse.json({ success: false, error: message }, { status });
+  } finally {
+    await mcpConnection?.close();
   }
 }

@@ -1,182 +1,240 @@
 # Board Game Rule Conflict Resolver
 
-A source-grounded board game tournament judge. The app uses Sanity as its structured source of truth for card text, errata, and rule priorities, then uses a Groq-compatible language model to decide which sources to query and produce a JSON ruling. The included cards and rulings are fictional demo content created to showcase the workflow.
+![Board Game Rule Conflict Resolver cover](./public/submission/cover.svg)
+
+> A source-grounded board game judge built for the [Sanity Challenge: Path One — Ship an Agent That Queries Real Content](https://dev.to/challenges/sanity-2026-09-16).
+
+**Live demo:** [boardgame-rule-agent.vercel.app](https://boardgame-rule-agent.vercel.app)
+**Sanity Studio:** [boardgame-rule-agent.vercel.app/studio](https://boardgame-rule-agent.vercel.app/studio)
+
+Board Game Rule Conflict Resolver helps players and tournament judges resolve ambiguous card interactions. It retrieves structured card text, official interaction rulings, errata, and core rule priorities from Sanity before producing a concise JSON ruling with citations and a confidence level.
+
+The included dataset is fictional demo content created for the Sanity Challenge. Replace it with licensed or officially maintained game data before using the application for a real game.
 
 ## Submission Graphics
 
-These original graphics summarize the product and its Sanity integration:
-
-![Board Game Rule Conflict Resolver cover](./public/submission/cover.svg)
+### Architecture
 
 ![Resolver architecture](./public/submission/architecture.svg)
 
+### Sanity Content Workflow
+
 ![Sanity-to-resolver content workflow](./public/submission/workflow.svg)
 
-For a challenge submission, pair these graphics with screenshots of the resolver showing a completed ruling and Sanity Studio showing the linked `interactionConflict` document. The seeded cards and rulings are fictional demo content; replace them with licensed or officially maintained game data for production use.
+These original graphics show the product experience, the agent architecture, and how editors update structured Sanity content that grounds each ruling.
 
-### Recommended demo flow
+## Challenge Submission
 
-1. Open Sanity Studio at `/studio` and edit the `Interaction Conflict / Errata` document for `Mirror Shield vs. Piercing Bolt`.
-2. Update the official resolution or linked governing rule and publish the document.
-3. Return to the resolver, submit the same card interaction, and show the answer grounded in the updated Sanity content.
-4. Submit an unknown card such as `Mystic Dragon` to demonstrate the low-confidence, insufficient-data safeguard.
+This project is a submission for the [Sanity Challenge on DEV.to](https://dev.to/challenges/sanity-2026-09-16), Path One: **Ship an Agent That Queries Real Content**.
 
-This flow demonstrates the key Sanity contribution: content editors can maintain structured rulings without changing application code, while the resolver retrieves that content through Sanity Context MCP tools and GROQ-backed tools.
+The challenge goal is demonstrated through an editor-controlled rules workflow:
 
-## What It Does
+1. Sanity stores cards, rules, and interaction conflicts as structured documents.
+2. The agent retrieves that content through Sanity Context MCP or local GROQ-backed tools.
+3. Sanity editors can update an official ruling without changing application code.
+4. The resolver cites the retrieved documents and declines to guess when authoritative content is missing.
 
-- Looks up card mechanics with the `lookupCards` tool.
-- Searches linked interaction conflicts and errata with `lookupConflicts`.
-- Retrieves ordered core rules with `getRulePriority`.
-- Accepts multiple cards, the current game phase, and a player question.
-- Requires the model to rely only on retrieved Sanity context.
-- Returns low confidence with an explicit insufficient-data message when Sanity has no definitive answer.
+## Demo Flow
+
+1. Open the [resolver](https://boardgame-rule-agent.vercel.app).
+2. Ask about `Mirror Shield` and `Piercing Bolt`.
+3. Try the three-card chain involving `Chain Lightning`, `Sanctuary Zone`, and `Blood Pact`.
+4. Submit an unknown card such as `Mystic Dragon` to see the strict low-confidence fallback.
+5. Open `/studio`, edit an interaction conflict, publish it, and submit the same question again.
+
+## How Sanity Powers the Agent
+
+Sanity is the structured source of truth for the resolver. The agent uses these tools:
+
+- `lookupCards` retrieves card names, slugs, types, trigger phases, keywords, and effect text.
+- `lookupConflicts` finds official interaction and errata documents linked to the complete set of retrieved card identifiers.
+- `getRulePriority` retrieves ordered core rules for phase, priority, combat, and related categories.
+
+The server-side workflow is:
+
+1. Retrieve every named card.
+2. Use the returned card identifiers to search linked conflicts and errata.
+3. Retrieve relevant rule priorities.
+4. Prefer an explicit official ruling over general reasoning.
+5. Return a verdict, reasoning, cited documents, and `high`, `medium`, or `low` confidence.
+
+The model is instructed to rely only on retrieved Sanity context. If the Content Lake has no definitive answer, the agent returns an insufficient-data response instead of inventing a ruling.
+
+When configured, the route connects to a GROQ-mode [Sanity Context MCP](https://www.sanity.io/docs/ai/sanity-context-mcp) endpoint. For local development and fallback operation, the same workflow is implemented with direct GROQ queries through `next-sanity`.
 
 ## Architecture
 
 ```mermaid
 flowchart TD
-		UI[Next.js resolver UI] --> API[POST /api/resolve-conflict]
-		API --> Agent[Groq-compatible model]
-		Agent --> Tools[Tool calls]
-		Tools --> Cards[lookupCards]
-		Tools --> Conflicts[lookupConflicts]
-		Tools --> Rules[getRulePriority]
-		Cards --> Sanity[Sanity Content Lake]
-		Conflicts --> Sanity
-		Rules --> Sanity
-		Sanity --> Agent
-		Agent --> API
-		API --> UI
+    UI[Next.js resolver UI] --> API[POST /api/resolve-conflict]
+    API --> Agent[Groq-compatible model]
+    Agent --> Tools[Agent tools]
+    Tools --> Cards[lookupCards]
+    Tools --> Conflicts[lookupConflicts]
+    Tools --> Rules[getRulePriority]
+    Cards --> Sanity[Sanity Content Lake]
+    Conflicts --> Sanity
+    Rules --> Sanity
+    Sanity --> Agent
+    Agent --> API
+    API --> UI
 ```
 
-## Tech Stack
+## Content Model
 
-- Next.js 16 App Router and React 19
-- TypeScript
+| Document type | Purpose |
+| --- | --- |
+| `gameCard` | Card identity, slug, type, trigger phase, keywords, and effect text |
+| `gameRule` | Ordered rule priorities, categories, codes, and rule text |
+| `interactionConflict` | Linked cards, conflict description, official ruling, and governing rule |
+
+The demo seed includes explicit rulings for two-card conflicts, a three-card chain interaction, and general rule-priority fallbacks.
+
+## Technology
+
+- Next.js 16 App Router
+- React 19 and TypeScript
+- Sanity Studio and Sanity Content Lake
+- GROQ queries through `next-sanity`
+- Sanity Context MCP
+- Groq SDK with model tool calling
 - Tailwind CSS
-- Sanity Studio and GROQ
-- Sanity Context MCP (server-side agent connection)
-- Groq SDK for model requests and tool calling
+- Vercel deployment
 
 ## Project Layout
 
 ```text
 app/
-	api/resolve-conflict/route.ts   Agent endpoint
-	page.tsx                         Resolver UI
-	studio/[[...tool]]/page.tsx      Embedded Sanity Studio
+  api/resolve-conflict/route.ts   Agent endpoint
+  page.tsx                        Resolver UI
+  studio/[[...tool]]/page.tsx     Embedded Sanity Studio
 sanity/
-	schemaTypes/                     Card, rule, and conflict schemas
-	lib/agentTools.ts                GROQ-backed agent tools
-	seed.json                        Example dataset
-scripts/test-agent.ts              End-to-end test runner
+  schemaTypes/                    Card, rule, and conflict schemas
+  lib/agentTools.ts               GROQ-backed agent tools
+  seed.json                       Example dataset
+scripts/
+  test-agent.ts                   End-to-end test runner
+vercel.json                       Explicit Next.js deployment settings
 ```
 
-## Prerequisites
+## Sanity Project
+
+The challenge demo uses:
+
+```text
+Project ID: kjwkn2a2
+Dataset: production
+```
+
+The project contains fictional cards, rules, and interaction conflicts. The Sanity project and dataset should be configured with the appropriate access controls before production use.
+
+## Local Development
+
+### Prerequisites
 
 - Node.js 20 or newer
-- An accessible Sanity project and dataset
+- A Sanity project and dataset
 - A Groq API key
 
-## Setup
-
-Run these commands from the app directory:
+Install dependencies from the directory containing `package.json`:
 
 ```bash
-cd /home/gulrez/boardgame-rule-agent/boardgame-rule-agent
+cd boardgame-rule-agent
 npm install
 ```
 
-Create `.env.local` in the app directory:
+Create `.env.local` in that directory:
 
 ```env
 NEXT_PUBLIC_SANITY_PROJECT_ID="your_sanity_project_id"
 NEXT_PUBLIC_SANITY_DATASET="production"
-GROQ_API_KEY="gsk_your_groq_api_key"
-```
-
-Optional settings:
-
-```env
 NEXT_PUBLIC_SANITY_API_VERSION="2026-09-28"
+NEXT_PUBLIC_SANITY_URL="https://your-project.api.sanity.io/v1"
+GROQ_API_KEY="gsk_your_groq_api_key"
 GROQ_MODEL="openai/gpt-oss-20b"
 ```
 
-`GROQ_API_KEY` is used only by the server route. Do not expose it in client-side code or commit `.env.local`. If a key has ever been exposed, revoke it in the provider dashboard and create a replacement before running the app.
-
-### Enable Sanity Context MCP
-
-Path One expects the agent to query real Sanity content through Sanity Context. Create a GROQ-mode MCP endpoint in [Sanity Context](https://www.sanity.io/docs/ai/sanity-context-mcp) with the dataset source `kjwkn2a2.production` (or your own project and dataset). Then deploy the Studio schema:
-
-```bash
-npx sanity schema deploy
-```
-
-Create an organization-level Sanity API token with **Context Viewer** permission. Add the endpoint URL and token to `.env.local`:
+For Sanity Context MCP, also configure:
 
 ```env
 SANITY_MCP_ENDPOINT_URL="https://api.sanity.io/v1/context/organizations/your-organization-id/mcp/your-endpoint-name"
-SANITY_MCP_TOKEN="your-organization-context-viewer-token"
+SANITY_MCP_TOKEN="your-context-viewer-token"
 ```
 
-The server-side agent connects to the endpoint, discovers its available tools, exposes those tools to the model, and executes the selected Sanity Context tool calls. The token is never sent to the browser. If `SANITY_MCP_ENDPOINT_URL` is empty, the app uses its local GROQ-backed tools instead; set both MCP variables for the challenge demo.
+The MCP token is server-only and must never be exposed to client code.
 
-## Seed Sanity
-
-Make sure the project ID and dataset in `.env.local` match the target Sanity project, then import the sample content:
-
-```bash
-npx sanity dataset import sanity/seed.json production --replace
-```
-
-The seed data contains example cards, core rules, and interaction conflicts used by the end-to-end tests. The `--replace` flag replaces the target dataset, so do not use it against a dataset containing content you need to keep.
-
-## Run Locally
-
-Start the development server:
+Start the app:
 
 ```bash
 npm run dev
 ```
 
-Open:
+Open [http://localhost:3000](http://localhost:3000) for the resolver and [http://localhost:3000/studio](http://localhost:3000/studio) for Sanity Studio.
 
-- Resolver: <http://localhost:3000>
-- Sanity Studio: <http://localhost:3000/studio>
+## Seed or Deploy Sanity Content
 
-## Test the Agent
-
-The test runner sends requests to `http://localhost:3000/api/resolve-conflict`, so keep `npm run dev` running in a separate terminal. From the app directory, run:
+Deploy the schema:
 
 ```bash
-npx tsx scripts/test-agent.ts
-
-# Or, using the package script:
-npm run test:e2e
+npx sanity schema deploy
 ```
 
-The suite covers explicit errata, rule-priority fallback, a three-card interaction, and an unknown-card low-confidence fallback. A `FETCH FAILED` result usually means the development server is not running or is not listening on port 3000.
+Import the demo dataset only into a dataset that can safely be replaced:
 
-## Validation
+```bash
+npx sanity dataset import sanity/seed.json production --replace
+```
 
-Run the project TypeScript check:
+The `--replace` option can delete existing dataset content. Do not use it against a dataset containing content you need to keep.
+
+## Validation and Tests
+
+Run the checks from the app directory:
 
 ```bash
 npx tsc --noEmit
-```
-
-Run the production build:
-
-```bash
+npm run lint
 npm run build
 ```
 
-Run ESLint:
+For the end-to-end suite, keep `npm run dev` running in one terminal and run:
 
 ```bash
-npm run lint
+npm run test:e2e
 ```
+
+The suite covers:
+
+- Explicit errata lookup
+- Rule-priority fallback
+- Three-card chain resolution
+- Unknown-card low-confidence fallback
+
+## Production Deployment
+
+The project is configured for Vercel with [vercel.json](./vercel.json).
+
+From the app directory:
+
+```bash
+npx vercel login
+npx vercel --prod
+```
+
+Set these variables in the Vercel project’s **Production** environment:
+
+```text
+NEXT_PUBLIC_SANITY_PROJECT_ID
+NEXT_PUBLIC_SANITY_DATASET
+NEXT_PUBLIC_SANITY_API_VERSION
+NEXT_PUBLIC_SANITY_URL
+GROQ_API_KEY
+GROQ_MODEL
+SANITY_MCP_ENDPOINT_URL
+SANITY_MCP_TOKEN
+```
+
+The `GROQ_API_KEY` and `SANITY_MCP_TOKEN` values are secrets. Add them through Vercel’s environment-variable settings or the Vercel CLI; never commit them to the repository.
 
 ## API Contract
 
@@ -184,36 +242,37 @@ npm run lint
 
 ```json
 {
-	"cards": ["Mirror Shield", "Piercing Bolt"],
-	"currentPhase": "Action Phase",
-	"question": "Can Mirror Shield reflect Piercing Bolt?"
+  "cards": ["Mirror Shield", "Piercing Bolt"],
+  "currentPhase": "Action Phase",
+  "question": "Can Mirror Shield reflect Piercing Bolt?"
 }
 ```
 
-Successful responses have this shape:
+A successful response has this shape:
 
 ```json
 {
-	"success": true,
-	"agentRuling": {
-		"verdict": "Clear 1-sentence ruling.",
-		"reasoning": "Step-by-step breakdown referencing retrieved card text or rules.",
-		"citedDocuments": ["document-id-or-title"],
-		"confidence": "high"
-	}
+  "success": true,
+  "agentRuling": {
+    "verdict": "Clear 1-sentence ruling.",
+    "reasoning": "Step-by-step reasoning grounded in retrieved content.",
+    "citedDocuments": ["conflict-1"],
+    "confidence": "high"
+  }
 }
 ```
 
-The `confidence` value is `high`, `medium`, or `low`. The route returns HTTP 400 when `cards` is missing or empty, and HTTP 500 when the agent or Sanity request fails.
+The route returns HTTP 400 for invalid card input, HTTP 429 when the model provider rate-limits a request, and HTTP 500 for other agent or Sanity failures.
 
-## Content Model
+## Security and Data Notes
 
-- `gameCard`: card identity, effect text, keywords, and trigger phase.
-- `gameRule`: ordered core rule priorities and rule text.
-- `interactionConflict`: linked cards, conflict description, official ruling, and resolution priority.
+- `.env.local` is ignored and must not be committed.
+- Never put provider keys or MCP tokens in client-side code.
+- Use a new token if a secret has been exposed.
+- Restrict Sanity and MCP permissions to the minimum required access.
+- Review and license game data before using this demo with real commercial content.
+- Sanity content is authoritative only for the documents that editors have maintained and published.
 
-The agent tools query these document types directly from Sanity. Add or revise demo or licensed content in Sanity Studio rather than hard-coding rulings in the route.
+## License and Demo Data
 
-## Important Limitation
-
-This project is only as authoritative as the content in its Sanity dataset. When the Content Lake does not contain a definitive matching card, conflict, or rule, the agent must report insufficient official data instead of inventing a ruling.
+The application code and submission graphics are provided for the challenge demonstration. The seeded card names, rules, and rulings are fictional. Confirm the repository license and replace the demo content with appropriately licensed data before redistributing or operating the resolver for a commercial game.

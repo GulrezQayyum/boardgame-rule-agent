@@ -85,7 +85,7 @@ export async function executeAgentTool(name: string, args: ToolArguments) {
 
   if (name === 'lookupConflicts') {
     const cardIds = stringArrayArgument(args, 'cardIds');
-    const query = `*[_type == "interactionConflict" && count((involvedCards[]->cardId.current)[@ in $cardIds]) > 0]{
+    const query = `*[_type == "interactionConflict" && count(involvedCards) == count($cardIds) && count((involvedCards[]->cardId.current)[@ in $cardIds]) == count($cardIds)]{
       _id, title, conflictDescription, officialRuling, resolutionPriority,
       "involvedCards": involvedCards[]->{ name, "cardId": cardId.current }
     }`;

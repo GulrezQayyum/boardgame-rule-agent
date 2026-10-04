@@ -100,7 +100,7 @@ Optional settings:
 
 ```env
 NEXT_PUBLIC_SANITY_API_VERSION="2026-09-28"
-GROQ_MODEL="openai/gpt-oss-120b"
+GROQ_MODEL="openai/gpt-oss-20b"
 ```
 
 `GROQ_API_KEY` is used only by the server route. Do not expose it in client-side code or commit `.env.local`. If a key has ever been exposed, revoke it in the provider dashboard and create a replacement before running the app.

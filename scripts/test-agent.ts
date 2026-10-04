@@ -37,6 +37,19 @@ const TEST_CASES = [
   }
 ];
 
+interface AgentRuling {
+  verdict?: string;
+  reasoning?: string;
+  citedDocuments?: string[];
+  confidence?: string;
+}
+
+interface TestResponse {
+  success: boolean;
+  error?: string;
+  agentRuling?: AgentRuling;
+}
+
 async function runTestSuite() {
   console.log("==================================================");
   console.log("  BOARD GAME RULE AGENT — END-TO-END TEST SUITE   ");
@@ -51,7 +64,7 @@ async function runTestSuite() {
         body: JSON.stringify(tc.payload),
       });
 
-      const data: any = await res.json();
+      const data: TestResponse = await res.json();
 
       if (!data.success) {
         console.log(`❌ ERROR: ${data.error}\n`);
@@ -68,8 +81,9 @@ async function runTestSuite() {
       console.log(`• Confidence: ${ruling?.confidence}`);
       console.log(`• Cited Docs: ${JSON.stringify(ruling?.citedDocuments || [])}`);
       console.log(`• Reasoning:  ${ruling?.reasoning?.slice(0, 120)}...\n`);
-    } catch (err: any) {
-      console.log(`❌ FETCH FAILED: ${err.message}\n`);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Unknown fetch error";
+      console.log(`❌ FETCH FAILED: ${message}\n`);
     }
   }
 }

@@ -1,4 +1,5 @@
 import { createClient } from 'next-sanity';
+import type { ChatCompletionTool } from 'groq-sdk/resources/chat/completions';
 
 export const sanityClient = createClient({
   projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID!,
@@ -7,7 +8,7 @@ export const sanityClient = createClient({
   useCdn: false,
 });
 
-export const agentToolDeclarations = [
+export const agentToolDeclarations: ChatCompletionTool[] = [
   {
     type: 'function',
     function: {
@@ -62,27 +63,41 @@ export const agentToolDeclarations = [
   },
 ];
 
-export async function executeAgentTool(name: string, args: any) {
+type ToolArguments = Record<string, unknown>;
+
+function stringArrayArgument(args: ToolArguments, name: string): string[] {
+  const value = args[name];
+  if (!Array.isArray(value) || !value.every((item) => typeof item === 'string')) {
+    throw new Error(`Tool argument "${name}" must be an array of strings.`);
+  }
+
+  return value;
+}
+
+export async function executeAgentTool(name: string, args: ToolArguments) {
   if (name === 'lookupCards') {
+    const cardNames = stringArrayArgument(args, 'cardNames');
     const query = `*[_type == "gameCard" && (name in $cardNames || cardId.current in $cardNames)]{
       _id, name, "cardId": cardId.current, cardType, triggerPhase, keywords, effectText
     }`;
-    return await sanityClient.fetch(query, { cardNames: args.cardNames });
+    return await sanityClient.fetch(query, { cardNames });
   }
 
   if (name === 'lookupConflicts') {
+    const cardIds = stringArrayArgument(args, 'cardIds');
     const query = `*[_type == "interactionConflict" && count((involvedCards[]->cardId.current)[@ in $cardIds]) > 0]{
       _id, title, conflictDescription, officialRuling, resolutionPriority,
       "involvedCards": involvedCards[]->{ name, "cardId": cardId.current }
     }`;
-    return await sanityClient.fetch(query, { cardIds: args.cardIds });
+    return await sanityClient.fetch(query, { cardIds });
   }
 
   if (name === 'getRulePriority') {
-    const query = `*[_type == "gameRule" ${args.category ? '&& category == $category' : ''}] | order(priorityOrder asc){
+    const category = typeof args.category === 'string' ? args.category : '';
+    const query = `*[_type == "gameRule" ${category ? '&& category == $category' : ''}] | order(priorityOrder asc){
       ruleTitle, ruleCode, category, priorityOrder, ruleText
     }`;
-    return await sanityClient.fetch(query, { category: args.category || '' });
+    return await sanityClient.fetch(query, { category });
   }
 
   throw new Error(`Unknown tool: ${name}`);

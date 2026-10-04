@@ -9,6 +9,7 @@ export default defineConfig({
   basePath: '/studio',
   projectId,
   dataset,
+  apiVersion,
 
   schema: {
     types: schemaTypes, // Changed from schema.types to schemaTypes

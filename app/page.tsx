@@ -9,6 +9,12 @@ interface RulingResult {
   confidence: 'high' | 'medium' | 'low';
 }
 
+interface ResolveResponse {
+  success: boolean;
+  agentRuling?: RulingResult;
+  error?: string;
+}
+
 export default function Home() {
   const [cardInputs, setCardInputs] = useState<string>('Mirror Shield, Piercing Bolt');
   const [phase, setPhase] = useState<string>('Action Phase');
@@ -39,15 +45,19 @@ export default function Home() {
         }),
       });
 
-      const data = await res.json();
+      const data: ResolveResponse = await res.json();
 
       if (!data.success) {
         throw new Error(data.error || 'Failed to resolve conflict.');
       }
 
+      if (!data.agentRuling) {
+        throw new Error('The response did not include a ruling.');
+      }
+
       setResult(data.agentRuling);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to resolve conflict.');
     } finally {
       setLoading(false);
     }

@@ -3,6 +3,7 @@
 ![Board Game Rule Conflict Resolver cover](./public/submission/cover.svg)
 
 > A source-grounded board game judge built for the [Sanity Challenge: Path One — Ship an Agent That Queries Real Content](https://dev.to/challenges/sanity-2026-09-16).
+> [![DEV Community Challenge](https://img.shields.io/badge/DEV%20COMMUNITY-CHALLENGE-00A8CC?style=flat-square&labelColor=4B4B4B)](https://dev.to/)
 
 **Live demo:** [boardgame-rule-agent.vercel.app](https://boardgame-rule-agent.vercel.app)
 **Sanity Studio:** [boardgame-rule-agent.vercel.app/studio](https://boardgame-rule-agent.vercel.app/studio)
